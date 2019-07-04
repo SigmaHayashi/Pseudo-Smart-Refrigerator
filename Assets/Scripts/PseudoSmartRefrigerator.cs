@@ -54,6 +54,18 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 			}
 		}
 
+		/*
+		if (Application.isEditor) {
+			if (Input.GetMouseButtonDown(0)) {
+				Vector2 click_position = Input.mousePosition;
+				Debug.Log("Click : " + click_position);
+			}
+		}
+		else {
+
+		}
+		*/
+
 	}
 
 	private void OnApplicationQuit() {
