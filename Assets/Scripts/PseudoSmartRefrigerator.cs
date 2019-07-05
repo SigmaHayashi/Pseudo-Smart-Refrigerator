@@ -13,8 +13,8 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 	private tmsdb cancoffee_data = new tmsdb();
 
-	private double offset_x_refrigerator = 7.0;
-	private double offset_y_refrigerator = 5.52;
+	private double offset_x_refrigerator = 7.00 + 0.05;
+	private double offset_y_refrigerator = 5.52 + 0.10;
 	private double offset_z_refrigerator = 0.75;
 
 	public Button PositionChangeButton1;
@@ -26,6 +26,8 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 	private float time = 0.0f;
 
+	//タッチ関連
+	private TouchRecognition recog;
 
 	// Start is called before the first frame update
 	void Start() {
@@ -37,9 +39,13 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		cancoffee_data.sensor = 3018;
 		cancoffee_data.tag = "E00401004E180EA0";
 
+
 		//ROSTMSに接続
 		wsc = GameObject.Find("Android Ros Socket Client").GetComponent<AndroidRosSocketClient>();
 		wsc.Advertiser(publih_name, "tms_msg_db/TmsdbStamped");
+
+		//タッチ関連システム取得
+		recog = GameObject.Find("Touch Recognition System").GetComponent<TouchRecognition>();
 	}
 
 
@@ -54,25 +60,45 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 			}
 		}
 
-		/*
-		if (Application.isEditor) {
-			if (Input.GetMouseButtonDown(0)) {
-				Vector2 click_position = Input.mousePosition;
-				Debug.Log("Click : " + click_position);
-			}
-		}
-		else {
+		//タッチした場所をデータベースに登録
+		if (recog.touch_start && recog.touch_on_image) {
+			Debug.Log("Touch: " + recog.touch_position_of_refrigerator.ToString("f2"));
 
-		}
-		*/
+			cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
+			cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
+			cancoffee_data.x = recog.touch_position_of_refrigerator.x + offset_x_refrigerator;
+			cancoffee_data.y = recog.touch_position_of_refrigerator.y + offset_y_refrigerator;
+			cancoffee_data.z = offset_z_refrigerator;
+			cancoffee_data.state = 1;
 
+			Publish(cancoffee_data);
+
+			Debug.Log("Change to: " + new Vector3((float)cancoffee_data.x, (float)cancoffee_data.y, (float)cancoffee_data.z));
+		}
 	}
+
 
 	private void OnApplicationQuit() {
 		wsc.UnAdvertiser(publih_name);
 		wsc.Close();
 	}
 
+
+	/*******************************************************
+	 * データベースを更新
+	 ******************************************************/
+	void Publish(tmsdb data) {
+		tmsdb[] tmsdbs = new tmsdb[1];
+		tmsdbs[0] = data;
+		stamped.tmsdb = tmsdbs;
+
+		wsc.PublisherDB(publih_name, stamped);
+	}
+
+
+	/*******************************************************
+	 * ボタンとかテキストのセットアップ
+	 ******************************************************/
 	void MyUISetting() {
 		PositionChangeButton1.onClick.AddListener(onClickPositionChange1);
 		PositionChangeButton2.onClick.AddListener(onClickPositionChange2);
@@ -163,13 +189,5 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		Publish(cancoffee_data);
 
 		Debug.Log("Delete");
-	}
-
-	void Publish(tmsdb data) {
-		tmsdb[] tmsdbs = new tmsdb[1];
-		tmsdbs[0] = data;
-		stamped.tmsdb = tmsdbs;
-
-		wsc.PublisherDB(publih_name, stamped);
 	}
 }
