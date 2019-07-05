@@ -9,11 +9,15 @@ public class TouchRecognition : MonoBehaviour {
 	public Text debug_text;
 
 	//タッチしたポイントをCanvasのどこなのかに変換するやつ
-	Vector2 offset_to_pseudo_screen_size;
+	private Vector2 offset_to_pseudo_screen_size;
 
 	//冷蔵庫のイメージの左下と右上
-	Vector2 image_left_down;
-	Vector2 image_right_up;
+	private Vector2 image_left_down;
+	private Vector2 image_right_up;
+
+	private Vector2[] offset_to_refrigerator_size = new Vector2[2];
+	private Vector2 real_refrigerator_size = new Vector2(0.35f, 0.38f);
+
 
 	// Start is called before the first frame update
 	void Start() {
@@ -22,24 +26,41 @@ public class TouchRecognition : MonoBehaviour {
 		Debug.Log("Screen Size: " + screen_size);
 		debug("Screen Size: " + screen_size);
 
-		//画面サイズによって変わったCanvasのサイズ取得，変換するやつを設定
+		//画面サイズによって変わったCanvasのサイズ取得，変換するオフセット値を計算
 		RectTransform rect_refrigerator_canvas = GameObject.Find("Refrigerator Canvas").GetComponent<RectTransform>();
 		Vector2 canvas_size = rect_refrigerator_canvas.sizeDelta;
 
 		Debug.Log("Canvas Size: " + canvas_size);
 		offset_to_pseudo_screen_size = new Vector2(canvas_size.x / screen_size.x, canvas_size.y / screen_size.y);
 
-		//冷蔵庫の左下と右端の座標を設定
-		image_left_down = canvas_size / 2 - new Vector2(600, 500);
-		image_right_up = canvas_size / 2 + new Vector2(600, 500);
+		//冷蔵庫の左下と右端の座標を計算
+		Image whole_image = GameObject.Find("Whole Image").GetComponent<Image>();
+		Vector2 image_size = whole_image.rectTransform.sizeDelta;
+
+		image_left_down = (canvas_size - image_size)/ 2;
+		image_right_up = (canvas_size + image_size) / 2;
 		Debug.Log("Left Down: " + image_left_down);
 		Debug.Log("Right Up: " + image_right_up);
+
+		//タッチした点を冷蔵庫サイズでいうとどこなのかに変換するオフセット値を計算
+		/*************************
+		 * a0 * x0 + b0 = 0
+		 * a0 * x1 + b0 = 0.35
+		 * a1 * y0 + b1 = 0
+		 * a1 * y1 + b1 = 0.38
+		 * 
+		 * [0] <= a0, a1
+		 * [1] <= b0, b1
+		 ************************/
+		offset_to_refrigerator_size[0] = real_refrigerator_size / (image_right_up - image_left_down);
+		offset_to_refrigerator_size[1] = offset_to_refrigerator_size[0] * image_left_down * -1;
 	}
 
 	// Update is called once per frame
 	void Update() {
 		if (Application.isEditor) {
 			if (Input.GetMouseButtonDown(0)) {
+				/*
 				Vector2 click_position = Input.mousePosition * offset_to_pseudo_screen_size;
 				
 				Vector2 tmp1 = image_right_up - click_position;
@@ -50,12 +71,22 @@ public class TouchRecognition : MonoBehaviour {
 				else {
 					debug("Click: " + click_position + ", " + "NG");
 				}
+				*/
+
+				Vector2 click_position = Input.mousePosition * offset_to_pseudo_screen_size * offset_to_refrigerator_size[0] + offset_to_refrigerator_size[1];
+				if(click_position.x >= 0 && click_position.y >= 0 && click_position.x <= real_refrigerator_size.x && click_position.y < real_refrigerator_size.y) {
+					debug("Click: " + click_position.ToString("f2") + ", OK");
+				}
+				else {
+					debug("Click: " + click_position.ToString("f2") + ", NG");
+				}
 			}
 		}
 		else {
 			if(Input.touchCount > 0) {
 				Touch touch = Input.GetTouch(0);
 				TouchPhase touch_phase = touch.phase;
+				/*
 				Vector2 touch_position = touch.position * offset_to_pseudo_screen_size;
 				
 				if (touch_phase == TouchPhase.Began) {
@@ -66,6 +97,17 @@ public class TouchRecognition : MonoBehaviour {
 					}
 					else {
 						debug("Touch: " + touch_position + ", " + "NG");
+					}
+				}
+				*/
+
+				Vector2 touch_position = touch.position * offset_to_pseudo_screen_size * offset_to_refrigerator_size[0] + offset_to_refrigerator_size[1];
+				if(touch_phase == TouchPhase.Began) {
+					if (touch_position.x >= 0 && touch_position.y >= 0 && touch_position.x <= real_refrigerator_size.x && touch_position.y < real_refrigerator_size.y) {
+						debug("Touch: " + touch_position.ToString("f2") + ", OK");
+					}
+					else {
+						debug("Touch: " + touch_position.ToString("f2") + ", NG");
 					}
 				}
 			}
