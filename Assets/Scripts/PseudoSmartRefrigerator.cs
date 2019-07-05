@@ -16,18 +16,14 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 	private double offset_x_refrigerator = 7.00 + 0.05;
 	private double offset_y_refrigerator = 5.52 + 0.10;
 	private double offset_z_refrigerator = 0.75;
-
-	public Button PositionChangeButton1;
-	public Button PositionChangeButton2;
-	public Button PositionChangeButton3;
-	public Button PositionChangeButton4;
-	public Button AppearButton;
-	public Button DeleteButton;
+	
+	private Button DeleteButton;
 
 	private float time = 0.0f;
 
 	//タッチ関連
 	private TouchRecognition recog;
+	private Image cancoffee_image;
 
 	// Start is called before the first frame update
 	void Start() {
@@ -39,13 +35,13 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		cancoffee_data.sensor = 3018;
 		cancoffee_data.tag = "E00401004E180EA0";
 
-
 		//ROSTMSに接続
 		wsc = GameObject.Find("Android Ros Socket Client").GetComponent<AndroidRosSocketClient>();
 		wsc.Advertiser(publih_name, "tms_msg_db/TmsdbStamped");
 
 		//タッチ関連システム取得
 		recog = GameObject.Find("Touch Recognition System").GetComponent<TouchRecognition>();
+		recog.ChangeImagePosition(cancoffee_image, false);
 	}
 
 
@@ -73,6 +69,8 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 			Publish(cancoffee_data);
 
+			recog.ChangeImagePosition(cancoffee_image);
+
 			Debug.Log("Change to: " + new Vector3((float)cancoffee_data.x, (float)cancoffee_data.y, (float)cancoffee_data.z));
 		}
 	}
@@ -94,90 +92,20 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 		wsc.PublisherDB(publih_name, stamped);
 	}
-
-
+	
 	/*******************************************************
 	 * ボタンとかテキストのセットアップ
 	 ******************************************************/
 	void MyUISetting() {
-		PositionChangeButton1.onClick.AddListener(onClickPositionChange1);
-		PositionChangeButton2.onClick.AddListener(onClickPositionChange2);
-		PositionChangeButton3.onClick.AddListener(onClickPositionChange3);
-		PositionChangeButton4.onClick.AddListener(onClickPositionChange4);
-		AppearButton.onClick.AddListener(onClickAppear);
+		DeleteButton = GameObject.Find("Main System/Button Canvas/Delete Button").GetComponent<Button>();
 		DeleteButton.onClick.AddListener(onClickDelete);
+
+		cancoffee_image = GameObject.Find("Main System/Refrigerator Canvas/CanCoffee Image").GetComponent<Image>();
 	}
 
 	/*******************************************************
 	 * ボタンを押したときの動作
 	 ******************************************************/
-	void onClickPositionChange1() {
-		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-		cancoffee_data.x = 0.15 + offset_x_refrigerator;
-		cancoffee_data.y = 0.15 + offset_y_refrigerator;
-		cancoffee_data.z = offset_z_refrigerator;
-		cancoffee_data.state = 1;
-
-		Publish(cancoffee_data);
-
-		Debug.Log("Change 1");
-	}
-
-	void onClickPositionChange2() {
-		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-		cancoffee_data.x = 0.35 + offset_x_refrigerator;
-		cancoffee_data.y = 0.15 + offset_y_refrigerator;
-		cancoffee_data.z = offset_z_refrigerator;
-		cancoffee_data.state = 1;
-
-		Publish(cancoffee_data);
-
-		Debug.Log("Change 2");
-	}
-
-	void onClickPositionChange3() {
-		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-		cancoffee_data.x = 0.15 + offset_x_refrigerator;
-		cancoffee_data.y = 0.35 + offset_y_refrigerator;
-		cancoffee_data.z = offset_z_refrigerator;
-		cancoffee_data.state = 1;
-
-		Publish(cancoffee_data);
-
-		Debug.Log("Change 3");
-	}
-
-	void onClickPositionChange4() {
-		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-		cancoffee_data.x = 0.35 + offset_x_refrigerator;
-		cancoffee_data.y = 0.35 + offset_y_refrigerator;
-		cancoffee_data.z = offset_z_refrigerator;
-		cancoffee_data.state = 1;
-
-		Publish(cancoffee_data);
-
-		Debug.Log("Change 4");
-	}
-
-	void onClickAppear() {
-		/*
-		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-		cancoffee_data.x = 0;
-		cancoffee_data.y = 0;
-		cancoffee_data.z = offset_z_refrigerator;
-		cancoffee_data.state = 1;
-
-		Publish(cancoffee_data);
-
-		Debug.Log("Appear");
-		*/
-	}
-
 	void onClickDelete() {
 		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
 		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
@@ -187,6 +115,8 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		cancoffee_data.state = 0;
 
 		Publish(cancoffee_data);
+
+		recog.ChangeImagePosition(cancoffee_image, false);
 
 		Debug.Log("Delete");
 	}
