@@ -8,10 +8,15 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 	private AndroidRosSocketClient wsc;
 
+	private string srvName = "tms_db_reader";
+	private TmsDBReq srvReq = new TmsDBReq();
+
 	private string publih_name = "tms_db_data";
 	private tmsdbStamped stamped = new tmsdbStamped();
 
 	private tmsdb cancoffee_data = new tmsdb();
+	private tmsdb greentea_data = new tmsdb();
+	private tmsdb soysauce_data = new tmsdb();
 
 	private double offset_x_refrigerator = 7.00 + 0.05;
 	private double offset_y_refrigerator = 5.52 + 0.10;
@@ -20,10 +25,17 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 	private Button DeleteButton;
 
 	private float time = 0.0f;
+	private bool init_flag = false;
 
 	//タッチ関連
 	private TouchRecognition recog;
 	private Image cancoffee_image;
+	private Image greentea_image;
+	private Image soysauce_image;
+	private List<Image> image_list = new List<Image>();
+
+	private Dropdown dropdown;
+
 
 	// Start is called before the first frame update
 	void Start() {
@@ -41,7 +53,12 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 		//タッチ関連システム取得
 		recog = GameObject.Find("Touch Recognition System").GetComponent<TouchRecognition>();
+		/*
 		recog.ChangeImagePosition(cancoffee_image, false);
+		recog.ChangeImagePosition(greentea_image, false);
+		recog.ChangeImagePosition(soysauce_image, false);
+		*/
+		InitPosition();
 	}
 
 
@@ -54,6 +71,10 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 				wsc.Connect();
 				wsc.Advertiser(publih_name, "tms_msg_db/TmsdbStamped");
 			}
+		}
+
+		if (!init_flag) {
+			InitPosition();
 		}
 
 		//タッチした場所をデータベースに登録
@@ -71,7 +92,7 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 
 			recog.ChangeImagePosition(cancoffee_image);
 
-			Debug.Log("Change to: " + new Vector3((float)cancoffee_data.x, (float)cancoffee_data.y, (float)cancoffee_data.z));
+			Debug.Log("Change to: " + new Vector3((float)cancoffee_data.x, (float)cancoffee_data.y, (float)cancoffee_data.z).ToString("f2"));
 		}
 	}
 
@@ -81,6 +102,48 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		wsc.Close();
 	}
 
+	/*******************************************************
+	 * データベースにある初期位置を取得
+	 ******************************************************/
+	void InitPosition() {
+		time += Time.deltaTime;
+		if(time > 1.0f) {
+			time = 0.0f;
+
+			srvReq.tmsdb = new tmsdb("PLACE", 2009);
+			wsc.ServiceCallerDB(srvName, srvReq);
+		}
+		if(wsc.IsReceiveSrvRes() && wsc.GetSrvResValue("service") == srvName) {
+			string srvRes = wsc.GetSrvResMsg();
+			Debug.Log("ROS: " + srvRes);
+
+			ServiceResponseDB responce = JsonUtility.FromJson<ServiceResponseDB>(srvRes);
+
+			foreach(tmsdb data in responce.values.tmsdb) {
+				foreach (Image image in image_list) {
+					if(image.name.IndexOf(data.name) != -1) {
+						if(data.state == 1) {
+							Vector2 position = new Vector2((float)data.x, (float)data.y);
+							Vector2 offset = new Vector2((float)offset_x_refrigerator, (float)offset_y_refrigerator);
+							position -= offset;
+							Debug.Log(data.name + ": " + position.ToString("f2"));
+
+							recog.touch_position_of_refrigerator = position;
+							//recog.ChangeImagePosition(image, position);
+							recog.ChangeImagePosition(image);
+						}
+						else {
+							Debug.Log(data.name + ": not exist");
+							recog.ChangeImagePosition(image, false);
+						}
+					}
+				}
+			}
+
+			init_flag = true;
+			Debug.Log("Init Position Complete");
+		}
+	}
 
 	/*******************************************************
 	 * データベースを更新
@@ -100,7 +163,20 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		DeleteButton = GameObject.Find("Main System/Button Canvas/Delete Button").GetComponent<Button>();
 		DeleteButton.onClick.AddListener(onClickDelete);
 
-		cancoffee_image = GameObject.Find("Main System/Refrigerator Canvas/CanCoffee Image").GetComponent<Image>();
+		cancoffee_image = GameObject.Find("Main System/Refrigerator Canvas/cancoffee Image").GetComponent<Image>();
+		greentea_image = GameObject.Find("Main System/Refrigerator Canvas/greentea_bottle Image").GetComponent<Image>();
+		soysauce_image = GameObject.Find("Main System/Refrigerator Canvas/soysauce_bottle_black Image").GetComponent<Image>();
+		image_list.Add(cancoffee_image);
+		image_list.Add(greentea_image);
+		image_list.Add(soysauce_image);
+
+		dropdown = GameObject.Find("Main System/Button Canvas/Item Dropdown").GetComponent<Dropdown>();
+		dropdown.ClearOptions();
+		//dropdown.options.Add(new Dropdown.OptionData { text = "Cancoffee" });
+		//dropdown.options.Add(new Dropdown.OptionData { text = "Grean Tea" });
+		//dropdown.options.Add(new Dropdown.OptionData { text = "Soy Sauce" });
+		dropdown.AddOptions(new List<string> { "Cancoffee", "Green Tea", "Soy Sauce" });
+		dropdown.RefreshShownValue();
 	}
 
 	/*******************************************************
