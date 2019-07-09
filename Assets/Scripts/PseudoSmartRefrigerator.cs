@@ -17,6 +17,7 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 	private tmsdb cancoffee_data = new tmsdb();
 	private tmsdb greentea_data = new tmsdb();
 	private tmsdb soysauce_data = new tmsdb();
+	private List<tmsdb> data_list = new List<tmsdb>();
 
 	private double offset_x_refrigerator = 7.00 + 0.05;
 	private double offset_y_refrigerator = 5.52 + 0.10;
@@ -41,23 +42,17 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 	void Start() {
 		MyUISetting();
 
-		cancoffee_data.id = 7006;
-		cancoffee_data.name = "cancoffee";
-		cancoffee_data.place = 2009;
-		cancoffee_data.sensor = 3018;
-		cancoffee_data.tag = "E00401004E180EA0";
+		DBSetting();
 
 		//ROSTMSに接続
 		wsc = GameObject.Find("Android Ros Socket Client").GetComponent<AndroidRosSocketClient>();
-		wsc.Advertiser(publih_name, "tms_msg_db/TmsdbStamped");
+		try {
+			wsc.Advertiser(publih_name, "tms_msg_db/TmsdbStamped");
+		}
+		catch { }
 
 		//タッチ関連システム取得
 		recog = GameObject.Find("Touch Recognition System").GetComponent<TouchRecognition>();
-		/*
-		recog.ChangeImagePosition(cancoffee_image, false);
-		recog.ChangeImagePosition(greentea_image, false);
-		recog.ChangeImagePosition(soysauce_image, false);
-		*/
 		InitPosition();
 	}
 
@@ -72,27 +67,29 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 				wsc.Advertiser(publih_name, "tms_msg_db/TmsdbStamped");
 			}
 		}
-
-		if (!init_flag) {
-			InitPosition();
+		else {
+			if (!init_flag) {
+				InitPosition();
+			}
 		}
 
 		//タッチした場所をデータベースに登録
 		if (recog.touch_start && recog.touch_on_image) {
-			Debug.Log("Touch: " + recog.touch_position_of_refrigerator.ToString("f2"));
+			//Debug.Log("Touch: " + recog.touch_position_of_refrigerator.ToString("f2"));
+			
+			int dropdown_value = dropdown.value;
+			data_list[dropdown_value].time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
+			data_list[dropdown_value].time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
+			data_list[dropdown_value].x = recog.touch_position_of_refrigerator.x + offset_x_refrigerator;
+			data_list[dropdown_value].y = recog.touch_position_of_refrigerator.y + offset_y_refrigerator;
+			data_list[dropdown_value].z = offset_z_refrigerator;
+			data_list[dropdown_value].state = 1;
 
-			cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-			cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-			cancoffee_data.x = recog.touch_position_of_refrigerator.x + offset_x_refrigerator;
-			cancoffee_data.y = recog.touch_position_of_refrigerator.y + offset_y_refrigerator;
-			cancoffee_data.z = offset_z_refrigerator;
-			cancoffee_data.state = 1;
+			Publish(data_list[dropdown_value]);
 
-			Publish(cancoffee_data);
+			recog.ChangeImagePosition(image_list[dropdown_value]);
 
-			recog.ChangeImagePosition(cancoffee_image);
-
-			Debug.Log("Change to: " + new Vector3((float)cancoffee_data.x, (float)cancoffee_data.y, (float)cancoffee_data.z).ToString("f2"));
+			Debug.Log("Change: " + data_list[dropdown_value].name + "(" + dropdown_value + "), " + new Vector3((float)data_list[dropdown_value].x, (float)data_list[dropdown_value].y, (float)data_list[dropdown_value].z).ToString("f2"));
 		}
 	}
 
@@ -163,37 +160,62 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 		DeleteButton = GameObject.Find("Main System/Button Canvas/Delete Button").GetComponent<Button>();
 		DeleteButton.onClick.AddListener(onClickDelete);
 
-		cancoffee_image = GameObject.Find("Main System/Refrigerator Canvas/cancoffee Image").GetComponent<Image>();
 		greentea_image = GameObject.Find("Main System/Refrigerator Canvas/greentea_bottle Image").GetComponent<Image>();
+		cancoffee_image = GameObject.Find("Main System/Refrigerator Canvas/cancoffee Image").GetComponent<Image>();
 		soysauce_image = GameObject.Find("Main System/Refrigerator Canvas/soysauce_bottle_black Image").GetComponent<Image>();
-		image_list.Add(cancoffee_image);
 		image_list.Add(greentea_image);
+		image_list.Add(cancoffee_image);
 		image_list.Add(soysauce_image);
 
 		dropdown = GameObject.Find("Main System/Button Canvas/Item Dropdown").GetComponent<Dropdown>();
 		dropdown.ClearOptions();
-		//dropdown.options.Add(new Dropdown.OptionData { text = "Cancoffee" });
-		//dropdown.options.Add(new Dropdown.OptionData { text = "Grean Tea" });
-		//dropdown.options.Add(new Dropdown.OptionData { text = "Soy Sauce" });
-		dropdown.AddOptions(new List<string> { "Cancoffee", "Green Tea", "Soy Sauce" });
+		dropdown.AddOptions(new List<string> { "Green Tea", "Cancoffee", "Soy Sauce" });
 		dropdown.RefreshShownValue();
+	}
+
+	/*******************************************************
+	 * データベースクラスの初期化
+	 ******************************************************/
+	void DBSetting() {
+		greentea_data.id = 7004;
+		greentea_data.name = "greentea_bottle";
+		greentea_data.place = 2009;
+		greentea_data.sensor = 3018;
+		greentea_data.tag = "E00401004E180E60";
+
+		cancoffee_data.id = 7006;
+		cancoffee_data.name = "cancoffee";
+		cancoffee_data.place = 2009;
+		cancoffee_data.sensor = 3018;
+		cancoffee_data.tag = "E00401004E180EA0";
+
+		soysauce_data.id = 7009;
+		soysauce_data.name = "soysauce_bottle_black";
+		soysauce_data.place = 2009;
+		soysauce_data.sensor = 3018;
+		soysauce_data.tag = "E00401004E18C87";
+
+		data_list.Add(greentea_data);
+		data_list.Add(cancoffee_data);
+		data_list.Add(soysauce_data);
 	}
 
 	/*******************************************************
 	 * ボタンを押したときの動作
 	 ******************************************************/
 	void onClickDelete() {
-		cancoffee_data.time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
-		cancoffee_data.time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
-		cancoffee_data.x = -1;
-		cancoffee_data.y = -1;
-		cancoffee_data.z = -1;
-		cancoffee_data.state = 0;
+		int dropdown_value = dropdown.value;
+		data_list[dropdown_value].time = DateTime.Now.Year.ToString() + "-" + DateTime.Now.Month.ToString("00") + "-" + DateTime.Now.Day.ToString("00") + "T";
+		data_list[dropdown_value].time += DateTime.Now.Hour.ToString("00") + ":" + DateTime.Now.Minute.ToString("00") + ":" + DateTime.Now.Second.ToString("00") + "." + DateTime.Now.Millisecond.ToString();
+		data_list[dropdown_value].x = -1;
+		data_list[dropdown_value].y = -1;
+		data_list[dropdown_value].z = -1;
+		data_list[dropdown_value].state = 0;
 
-		Publish(cancoffee_data);
+		Publish(data_list[dropdown_value]);
 
-		recog.ChangeImagePosition(cancoffee_image, false);
+		recog.ChangeImagePosition(image_list[dropdown_value], false);
 
-		Debug.Log("Delete");
+		Debug.Log("Delete: " + data_list[dropdown_value].name + "(" + dropdown_value + ")");
 	}
 }
