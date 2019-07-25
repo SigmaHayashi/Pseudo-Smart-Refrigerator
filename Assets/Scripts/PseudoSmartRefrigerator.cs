@@ -117,21 +117,23 @@ public class PseudoSmartRefrigerator : MonoBehaviour {
 			ServiceResponseDB responce = JsonUtility.FromJson<ServiceResponseDB>(srvRes);
 
 			foreach(tmsdb data in responce.values.tmsdb) {
-				foreach (Image image in image_list) {
-					if(image.name.IndexOf(data.name) != -1) {
-						if(data.state == 1) {
-							Vector2 position = new Vector2((float)data.x, (float)data.y);
-							Vector2 offset = new Vector2((float)offset_x_refrigerator, (float)offset_y_refrigerator);
-							position -= offset;
-							Debug.Log(data.name + ": " + position.ToString("f2"));
+				if(data.sensor == 3018) {
+					foreach (Image image in image_list) {
+						if(image.name.IndexOf(data.name) != -1) {
+							if(data.state == 1) {
+								Vector2 position = new Vector2((float)data.x, (float)data.y);
+								Vector2 offset = new Vector2((float)offset_x_refrigerator, (float)offset_y_refrigerator);
+								position -= offset;
+								Debug.Log(data.name + ": " + position.ToString("f2"));
 
-							recog.touch_position_of_refrigerator = position;
-							//recog.ChangeImagePosition(image, position);
-							recog.ChangeImagePosition(image);
-						}
-						else {
-							Debug.Log(data.name + ": not exist");
-							recog.ChangeImagePosition(image, false);
+								recog.touch_position_of_refrigerator = position;
+								//recog.ChangeImagePosition(image, position);
+								recog.ChangeImagePosition(image);
+							}
+							else {
+								Debug.Log(data.name + ": not exist");
+								recog.ChangeImagePosition(image, false);
+							}
 						}
 					}
 				}
