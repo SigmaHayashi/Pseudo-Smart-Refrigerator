@@ -245,7 +245,7 @@ public class ServiceCall {
 public class AndroidRosSocketClient : MonoBehaviour {
 	private WebSocket ws;
 	
-	public string address = "ws://192.168.4.170:9090";
+	public string address = "ws://192.168.4.170:9090"; /* PLEASE CHANGE * PLEASE CHANGE */
 
 	[HideInInspector]
 	public int conneciton_state = wscCONST.STATE_DISCONNECTED;
